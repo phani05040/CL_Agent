@@ -48,7 +48,7 @@ The Prisma schema includes the Phase 1 core entities and relations for users, or
 
 ## Provider boundary
 
-Provider adapters will implement narrow interfaces: telephony (call lifecycle, DTMF, transfer, number inventory), STT, TTS, LLM, payments, calendar, and WhatsApp. Credentials belong in encrypted server-side integration records or the runtime secret store—never in frontend state or logs.
+Provider adapters will implement narrow interfaces: telephony (call lifecycle, DTMF, transfer, number inventory), STT, TTS, LLM, payments, calendar, and WhatsApp. The initial STT/TTS adapters are local-process adapters: whisper.cpp transcribes WAV files and Piper synthesizes WAV output from locally mounted model files. They need no hosted-speech credentials and make no network request. Credentials for optional future providers belong in encrypted server-side integration records or the runtime secret store—never in frontend state or logs.
 
 ## Docker
 

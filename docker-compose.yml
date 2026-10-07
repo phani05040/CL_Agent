@@ -27,6 +27,8 @@ services:
     depends_on:
       postgres: { condition: service_healthy }
       redis: { condition: service_healthy }
+    volumes:
+      - ./models:/models:ro
   web:
     build: { context: ., dockerfile: infra/web.Dockerfile }
     environment: { NEXT_PUBLIC_API_URL: http://localhost:4000 }
