@@ -1,0 +1,1 @@
+export default function Features() { return <main className="mx-auto max-w-4xl p-10"><h1 className="text-4xl font-bold">Voice operations, with context</h1><p className="mt-5 max-w-2xl text-slate-600">CallPilot brings employee configuration, lead context, outcomes, and responsible follow-up into one workflow.</p></main>; }

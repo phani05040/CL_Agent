@@ -1,0 +1,1 @@
+export default function Pricing() { return <main className="mx-auto max-w-4xl p-10"><h1 className="text-4xl font-bold">Simple, usage-aware pricing</h1><p className="mt-5 text-slate-600">Plans and prepaid credits will be available when billing is configured for your workspace.</p></main>; }

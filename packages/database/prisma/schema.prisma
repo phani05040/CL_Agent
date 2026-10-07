@@ -1,0 +1,239 @@
+generator client {
+  provider = "prisma-client-js"
+}
+datasource db {
+  provider = "postgresql"
+  url = env("DATABASE_URL")
+}
+enum MemberRole { OWNER ADMIN MEMBER }
+enum LeadStatus { NEW CONTACTED INTERESTED QUALIFIED APPOINTMENT_BOOKED NOT_INTERESTED UNREACHABLE CONVERTED }
+enum CallStatus { QUEUED RINGING ANSWERED IN_PROGRESS COMPLETED FAILED BUSY NO_ANSWER VOICEMAIL CANCELLED }
+enum CampaignStatus { DRAFT SCHEDULED RUNNING PAUSED COMPLETED CANCELLED }
+enum TransactionType { CREDIT DEBIT REFUND ADJUSTMENT }
+model User {
+ id String @id @default(cuid())
+ email String @unique
+ passwordHash String?
+ name String?
+ emailVerifiedAt DateTime?
+ createdAt DateTime @default(now())
+ updatedAt DateTime @updatedAt
+ memberships OrganizationMember[]
+ sessions Session[]
+ auditLogs AuditLog[]
+}
+model Organization {
+ id String @id @default(cuid())
+ name String
+ slug String @unique
+ timezone String @default("Asia/Kolkata")
+ createdAt DateTime @default(now())
+ updatedAt DateTime @updatedAt
+ members OrganizationMember[]
+ employees AIEmployee[]
+ leads Lead[]
+ campaigns Campaign[]
+ calls Call[]
+ wallet CreditWallet?
+ subscriptions Subscription[]
+ webhooks WebhookEndpoint[]
+ appointments Appointment[]
+}
+model OrganizationMember {
+ id String @id @default(cuid())
+ organizationId String
+ userId String
+ role MemberRole @default(MEMBER)
+ createdAt DateTime @default(now())
+ organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+ user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+ @@unique([organizationId, userId])
+}
+model Session {
+ id String @id @default(cuid())
+ userId String
+ tokenHash String @unique
+ expiresAt DateTime
+ createdAt DateTime @default(now())
+ user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+model Plan {
+ id String @id @default(cuid())
+ code String @unique
+ name String
+ pricePaise Int
+ monthlyCredits Int @default(0)
+ subscriptions Subscription[]
+}
+model Subscription {
+ id String @id @default(cuid())
+ organizationId String
+ planId String
+ status String
+ providerRef String? @unique
+ organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+ plan Plan @relation(fields: [planId], references: [id])
+}
+model CreditWallet {
+ id String @id @default(cuid())
+ organizationId String @unique
+ balance Int @default(0)
+ organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+ transactions CreditTransaction[]
+}
+model CreditTransaction {
+ id String @id @default(cuid())
+ walletId String
+ type TransactionType
+ amount Int
+ balanceAfter Int
+ createdAt DateTime @default(now())
+ wallet CreditWallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+}
+model AIEmployee {
+ id String @id @default(cuid())
+ organizationId String
+ name String
+ role String
+ language String @default("en-IN")
+ instructions String
+ openingMessage String?
+ enabled Boolean @default(true)
+ config Json @default("{}")
+ createdAt DateTime @default(now())
+ updatedAt DateTime @updatedAt
+ organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+ fields EmployeeField[]
+ calls Call[]
+ campaigns Campaign[]
+}
+model EmployeeField {
+ id String @id @default(cuid())
+ employeeId String
+ name String
+ label String
+ fieldType String
+ required Boolean @default(false)
+ employee AIEmployee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+ @@unique([employeeId, name])
+}
+model Lead {
+ id String @id @default(cuid())
+ organizationId String
+ name String?
+ phone String
+ email String?
+ source String?
+ status LeadStatus @default(NEW)
+ tags String[] @default([])
+ customFields Json @default("{}")
+ createdAt DateTime @default(now())
+ updatedAt DateTime @updatedAt
+ organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+ calls Call[]
+ campaignLeads CampaignLead[]
+ @@index([organizationId, phone])
+}
+model Campaign {
+ id String @id @default(cuid())
+ organizationId String
+ employeeId String
+ name String
+ status CampaignStatus @default(DRAFT)
+ schedule Json?
+ retryRules Json?
+ concurrency Int @default(1)
+ organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+ employee AIEmployee @relation(fields: [employeeId], references: [id])
+ leads CampaignLead[]
+}
+model CampaignLead {
+ id String @id @default(cuid())
+ campaignId String
+ leadId String
+ status String @default("queued")
+ attempts Int @default(0)
+ campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+ lead Lead @relation(fields: [leadId], references: [id], onDelete: Cascade)
+ @@unique([campaignId, leadId])
+}
+model Call {
+ id String @id @default(cuid())
+ organizationId String
+ leadId String?
+ employeeId String?
+ status CallStatus @default(QUEUED)
+ direction String
+ durationSeconds Int @default(0)
+ providerCallId String? @unique
+ isTest Boolean @default(false)
+ outcome String?
+ summary String?
+ createdAt DateTime @default(now())
+ organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+ lead Lead? @relation(fields: [leadId], references: [id])
+ employee AIEmployee? @relation(fields: [employeeId], references: [id])
+ transcript Transcript?
+ usage UsageRecord?
+}
+model Transcript {
+ id String @id @default(cuid())
+ callId String @unique
+ call Call @relation(fields: [callId], references: [id], onDelete: Cascade)
+ messages TranscriptMessage[]
+}
+model TranscriptMessage {
+ id String @id @default(cuid())
+ transcriptId String
+ speaker String
+ content String
+ transcript Transcript @relation(fields: [transcriptId], references: [id], onDelete: Cascade)
+}
+model WebhookEndpoint {
+ id String @id @default(cuid())
+ organizationId String
+ url String
+ secretEncrypted String
+ events String[]
+ active Boolean @default(true)
+ organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+ deliveries WebhookDelivery[]
+}
+model WebhookDelivery {
+ id String @id @default(cuid())
+ endpointId String
+ event String
+ payload Json
+ status String
+ attempts Int @default(0)
+ endpoint WebhookEndpoint @relation(fields: [endpointId], references: [id], onDelete: Cascade)
+}
+model Appointment {
+ id String @id @default(cuid())
+ organizationId String
+ leadId String?
+ startsAt DateTime
+ endsAt DateTime
+ title String
+ organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+}
+model UsageRecord {
+ id String @id @default(cuid())
+ callId String @unique
+ durationSeconds Int
+ providerCostPaise Int @default(0)
+ aiCostPaise Int @default(0)
+ creditsCharged Int @default(0)
+ call Call @relation(fields: [callId], references: [id], onDelete: Cascade)
+}
+model AuditLog {
+ id String @id @default(cuid())
+ userId String?
+ organizationId String?
+ action String
+ entityType String
+ entityId String?
+ metadata Json?
+ createdAt DateTime @default(now())
+ user User? @relation(fields: [userId], references: [id])
+}

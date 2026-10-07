@@ -1,0 +1,1 @@
+export default function Solutions() { return <main className="mx-auto max-w-4xl p-10"><h1 className="text-4xl font-bold">Built for high-intent conversations</h1><p className="mt-5 text-slate-600">Qualify, route, and follow up with the care your customers expect.</p></main>; }

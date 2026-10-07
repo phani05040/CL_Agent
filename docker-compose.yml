@@ -1,0 +1,35 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: callpilot
+      POSTGRES_PASSWORD: callpilot
+      POSTGRES_DB: callpilot
+    ports: ["5432:5432"]
+    volumes: [postgres_data:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U callpilot -d callpilot"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+  api:
+    build: { context: ., dockerfile: infra/api.Dockerfile }
+    env_file: .env
+    ports: ["4000:4000"]
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+  web:
+    build: { context: ., dockerfile: infra/web.Dockerfile }
+    environment: { NEXT_PUBLIC_API_URL: http://localhost:4000 }
+    ports: ["3000:3000"]
+    depends_on: [api]
+volumes: { postgres_data: {} }

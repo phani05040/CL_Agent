@@ -1,0 +1,11 @@
+import Fastify from "fastify";
+import cookie from "@fastify/cookie";
+import cors from "@fastify/cors";
+import rateLimit from "@fastify/rate-limit";
+import { env } from "./lib/env.js";
+import { authRoutes } from "./modules/auth/routes.js";
+const app = Fastify({ logger: { level: env.NODE_ENV === "production" ? "info" : "debug" } });
+await app.register(cors, { origin: env.WEB_ORIGIN, credentials: true }); await app.register(cookie); await app.register(rateLimit, { max: 100, timeWindow: "1 minute" });
+app.get("/health", async () => ({ status: "ok", service: "callpilot-api" }));
+await app.register(authRoutes, { prefix: "/api/auth" });
+await app.listen({ port: env.API_PORT, host: "0.0.0.0" });

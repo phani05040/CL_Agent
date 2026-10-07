@@ -1,0 +1,1 @@
+export default function Integrations() { return <main className="mx-auto max-w-4xl p-10"><h1 className="text-4xl font-bold">Integrations that respect your stack</h1><p className="mt-5 text-slate-600">Connect calendar, messaging, and lead sources through explicit, secure provider connections.</p></main>; }
